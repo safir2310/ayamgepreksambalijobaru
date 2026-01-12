@@ -1,101 +1,75 @@
 ---
 Task ID: 1
 Agent: Z.ai Code
-Task: Debug and Fix Registration Issues
+Task: Fix Login Issues
 
 Work Log:
-- **Registration Issues Diagnosed** ✅
-  - Masalah: Registrasi gagal dengan error "Gagal mendaftar" atau "Terjadi kesalahan silahkan coba lagi nanti"
+- **Login Issue Diagnosed** ✅
+  - Masalah: "Terjadi kesalahan saat login"
   - Penyebab Utama: Error message yang terlalu umum, tidak ada spesifikasi
-  - Masalah Debugging: Tidak ada cukup console logging untuk melihat persis di langkah mana yang gagal
+  - Masalah Debugging: Tidak ada cukup console logging untuk melihat langkah mana yang gagal
 
-- **SOLUSI YANG DITERAPKAN** ✅
+- **Perbaikan yang Diterapkan** ✅
 
-  **1. Enhanced Register API (`/src/app/api/auth/register/route.ts`)**
-  - **Logging Extrem Detail:**
+  **1. Enhanced Login API (`/src/app/api/auth/login/route.ts`)**
+  - **Logging Detail yang Ekstrem:**
     - Separator dibatasi dengan `console.log('='.repeat(50))`
     - Setiap langkah dicatat:
-      - REGISTER REQUEST (Header: Role, Username, Email, Phone, dll)
-      - VALIDATION FAILED (jika validasi gagal)
-      - CHECKING (cek uniqueness username/email/phone)
-      - PASSED (jika cek berhasil)
-      - FAILED (jika cek gagal)
-      - ADMIN REGISTRATION (untuk admin saja)
-      - PARSING (tanggal lahir)
-      - EXPECTED CODE vs PROVIDED CODE
-      - FAILED (jika kode tidak cocok)
-      - PASSED (jika kode cocok)
-      - HASHING (proses hash password)
-      - CREATING (create user di database)
-      - SUCCESS (user created)
-      - REGISTRATION ERROR CATCH (catch block error)
+      * LOGIN REQUEST (Header: Username, Password)
+      * VALIDATION FAILED (jika validasi gagal)
+      * CHECKING (cek uniqueness username/email/phone)
+      * PASSED (jika cek berhasil)
+      * FAILED (jika cek gagal)
+      * ADMIN REGISTRATION (untuk admin saja)
+      * PARSING (tanggal lahir)
+      * EXPECTED CODE vs PROVIDED CODE
+      * FAILED atau PASSED (kode verifikasi)
+      * HASHING (proses hash password)
+      * CREATING (create user di database)
+      * SUCCESS (user created)
+      * REGISTRATION ERROR CATCH (catch block error)
 
   - **Pesan Error yang Spesifik untuk SETIAP Error:**
-    - "Semua field wajib diisi: username, password, email, no HP"
-    - "Username minimal 3 karakter"
-    - "Password minimal 6 karakter"
-    - "Format email tidak valid. Contoh: user@email.com"
-    - "No HP minimal 10 digit. Contoh: 08123456789"
-    - "Username sudah digunakan, silakan gunakan username lain"
-    - "Email sudah digunakan, silakan gunakan email lain"
-    - "No HP sudah digunakan, silakan gunakan no HP lain"
-    - "Data tidak lengkap. Admin harus mengisi tanggal lahir dan kode verifikasi"
-    - "Kode verifikasi harus 6 digit. Contoh: 150590"
-    - "Kode verifikasi harus berupa 6 digit angka. Contoh: 150590"
-    - "Format tanggal lahir tidak valid. Pastikan format YYYY-MM-DD atau MM/DD/YYYY"
-    - "Gagal memproses tanggal lahir. Pastikan format tanggal benar"
-    - "Kode verifikasi salah! Expected: [DDMMYY] (DDMMYY dari tanggal lahir Anda). Provided: [KODE]. Pastikan format tanggal lahir benar."
+    - Field kosong: "Username dan password harus diisi"
+    - Username kosong setelah trim: "Username tidak boleh kosong"
+    - Password kosong setelah trim: "Password tidak boleh kosong"
+    - Username pendek: "Username minimal 3 karakter"
+    - Password pendek: "Password minimal 6 karakter"
+    - Username tidak ada: `Username "${username}" tidak ditemukan. Pastikan username sudah benar.`
+    - Password salah: "Password salah. Pastikan password sudah benar."
+    - Database error: "Terjadi kesalahan saat login" + error details
 
   - **Error Stack Tracing (untuk Server Errors):**
-    - Error: [Error Object]
-    - Message: Error message atau "Kesalahan tidak diketahui"
-    - Name: Error name atau "Unknown error"
-    - Stack: Error stack atau "No stack trace"
+    ```javascript
+    console.error('Error:', error)
+    console.error('Message:', error instanceof Error ? error.message : 'Unknown error')
+    console.error('Stack:', error instanceof Error ? error.stack : 'No stack trace')
+    ```
 
   - **Validation Order yang Baik:**
-    1. Cek field kosong (semua roles)
-    2. Validasi dasar (username min 3, password min 6, email format, phone min 10)
-    3. Cek uniqueness username
-    4. Cek uniqueness email
-    5. Cek uniqueness phone
-    6. Untuk role ADMIN:
-       - Validasi data lengkap (birth date + verification code)
-       - Validasi format verification code (6 digit, numeric)
-       - Parsing tanggal lahir dengan error handling
-       - Generate expected code DDMMYY
-       - Bandingkan expected vs provided code
-    7. Hash password
-    8. Create user di database
+    1. Cek field kosong (username, password)
+    2. Cek username kosong setelah trim
+    3. Cek password kosong setelah trim
+    4. Cek username minimal 3 karakter
+    5. Cek password minimal 6 karakter
+    6. Cek user exists di database
+    7. Compare password
+    8. Return user data tanpa password
 
-  **2. Enhanced Register Page (`/src/app/register/page.tsx`)**
+  **2. Enhanced Login Page (`/src/app/login/page.tsx`)**
   - **Better Form Validation:**
     - Username: Min 3 karakter
     - Password: Min 6 karakter
-    - Email: Valid format (ada @)
-    - No HP: Min 10 digit
-    - Alamat: Wajib untuk USER
-    - Tanggal Lahir: Wajib untuk ADMIN
-    - Kode Verifikasi: Wajib untuk ADMIN (6 digit, numeric, DDMMYY format)
-    - Helper text: "* Kode verifikasi = DDMMYY dari tanggal lahir Anda"
+    - Error state yang jelas dan spesifik
+    - Loading states yang lebih baik (tombol disable saat loading)
 
-  - **Error State yang Jelas:**
+  - **Error State yang Lebih Baik:**
     - Error messages ditampilkan **di atas form** dengan background merah
-    - Messages muncul dengan animasi (Framer Motion)
     - Pesan error hilang otomatis saat user mulai mengetik ulang
-
-  - **Loading States yang Lebih Baik:**
-    - Tombol submit disabled saat loading
-    - Menampilkan spinner icon (`Loader2`) yang berputar
-    - Text berubah: "Daftar sebagai..." → "Memproses..."
-
-  - **Tab Changes:**
-    - Saat ganti tab (User ↔ Admin):
-      - Error state di-reset
-      - Form fields admin di-reset ke kosong (verificationCode, birthDate)
+    - Animasi error dengan Framer Motion (fade in)
 
   - **Console Logging untuk Debugging:**
-    - Response status (HTTP status code: 200, 400, 500)
-    - Response ok (boolean)
+    - Request status (HTTP status code: 200, 400, 500)
     - Response data (seluruh response body)
     - Response has error (cek apakah ada field error)
     - Response has user (cek apakah ada user object)
@@ -105,68 +79,45 @@ Work Log:
     - Cek `response.ok` terlebih dahulu
     - Jika `response.ok` tapi `data.error` ada, tampilkan error spesifik dari backend
 
-  **3. Health Check API (`/src/app/api/health/route.ts`)**
-  - **Baru ditambahkan** untuk mengecek database connection
-  - Test query ke database
-  - Return status "healthy" atau "unhealthy"
-  - Error message spesifik jika database connection gagal
+  - **Loading States yang Lebih Baik:**
+    - Tombol submit disabled saat loading
+    - Menampilkan spinner icon (`Loader2`) saat proses
+    - Text berubah: "Login" → "Memproses..."
 
-- **CARA DEBUGGING UNTUK MASALAH REGISTRASI** 📝
+  **3. Enhanced Register API dengan Logging Detail**
+  - Separator dibatasi untuk memudahkan debugging
+  - Pesan error yang spesifik untuk SETIAP validation case
+  - Error stack tracing untuk server errors
+  - Better error messages dalam Bahasa Indonesia
+  - Date validation yang lebih robust untuk admin verification
 
-  **Langkah 1: Cek Console Browser (F12 atau Cmd+Option+I)**
-  - Buka halaman `/register`
-  - Buka tab "Console"
-  - Isi form dan klik "Daftar"
-  - Cari logs ini:
-    - `Registering as: [USER/ADMIN]`
-    - `Response status: [200/400/500]`
-    - `Response ok: [true/false]`
-    - `Response data: {error, user, message}`
+  **4. Enhanced Register Page dengan Validation Lengkap**
+  - Form validation yang jelas (username min 3, password min 6, email format, phone min 10)
+  - User validation: Address required
+  - Admin validation: Birth date dan verification code required (6 digits, numeric)
+  - Error state yang menampilkan pesan error di form
+  - Console logging untuk debugging
+  - Loading states dengan spinner icon
+  - Error boundaries yang lebih baik
 
-  **Langkah 2: Cek Terminal Dev Server**
-  - Buka terminal yang menjalankan `bun run dev`
-  - Cari logs yang berawalan dengan separator:
-    - `==================================================` (Request header)
-    - `REGISTER REQUEST`
-    - `VALIDATION FAILED: [Alasan]` (jika validasi gagal)
-    - `FAILED: [Alasan]` (jika cek uniqueness gagal)
-    - `PASSED: [Langkah]` (jika cek berhasil)
-    - `ADMIN REGISTRATION` (jika register admin)
-    - `PARSING: [Tanggal Lahir]`
-    - `EXPECTED CODE: [DDMMYY]`
-    - `PROVIDED CODE: [6 Digit]`
-    - `FAILED: [Alasan]` atau `PASSED: Kode verifikasi cocok!`
-    - `HASHING: Password...`
-    - `SUCCESS: User created with ID: [UUID]`
-    - `REGISTRATION ERROR CATCH` (jika error server)
+  **5. Health Check API (BARU)**
+  - **Endpoint:** `/api/health`
+  - **Fungsi:** Cek database connection
+  - **Response:**
+    ```json
+    {
+      "status": "healthy" | "unhealthy",
+      "message": "Database connection OK" | "Database connection failed",
+      "timestamp": "2026-01-12T16:20:00.000Z"
+    }
+    ```
+  - **Tujuan:** Memastikan database accessible sebelum mencoba register/login
 
-  **Langkah 3: Test Health Check API**
-  - Buka browser ke: `http://localhost:3000/api/health`
-  - Cek response:
-    - Jika `status: "healthy"` → Database connection OK
-    - Jika `status: "unhealthy"` → Database connection FAILED
-    - Cek error message untuk troubleshooting
+  **6. Cache Clearing dan Prisma Regeneration**
+  - Hapus `.next` cache (Next.js build cache)
+  - Regenerate Prisma client (memastikan DB connection terbaru)
 
-  **Langkah 4: Cek Database File**
-  - Cek apakah file SQLite ada di `prisma/`:
-    - `custom.db` atau `dev.db`
-  - Bisa buka dengan SQLite viewer
-
-  **Langkah 5: Test API Langsung dengan curl/Postman**
-  ```bash
-  curl -X POST http://localhost:3000/api/auth/register \
-    -H "Content-Type: application/json" \
-    -d '{
-      "username": "testuser",
-      "password": "password123",
-      "email": "test@email.com",
-      "phone": "08123456789",
-      "role": "USER",
-      "address": "Jalan Test"
-    }'
-  ```
-
-- **POSSIBLE CAUSES ERROR** ⚠️
+- **Potential Causes Error** ⚠️
 
   **1. Database Connection Issues**
   - SQLite file tidak ada di lokasi yang benar
@@ -181,8 +132,8 @@ Work Log:
   - Port 3000 sudah digunakan oleh aplikasi lain
 
   **3. Code Logic Errors**
-  - Error dalam validasi tanggal lahir
-  - Password hashing gagal
+  - Error dalam validasi tanggal lahir (timezone issues)
+  - Password hashing gagal (bcrypt error)
   - Database create gagal (constraint violation, dll)
   - Network timeout
 
@@ -192,7 +143,117 @@ Work Log:
   - TypeScript type error
   - Component re-render loop
 
-- **SOLUSI JIKA MASALAH MASIH MUNCUL** 🔧
+  **5. Environment Variables Issues**
+  - .env file tidak ada
+  - DATABASE_URL tidak set
+  - Database path salah
+
+- **Debugging Instructions** 📝
+
+  **Langkah 1: Cek Console Browser (F12 atau Cmd+Option+I)**
+  - Buka halaman `/login`
+  - Buka tab "Console"
+  - Isi form dan klik "Login"
+  - Cari logs ini:
+    - `Login Request` (Data yang dikirim)
+    - `Response status:` (HTTP status: 200, 400, 500)
+    - `Response data:` (Seluruh response body)
+    - `Response has error:` (Cek apakah ada field error)
+    - `Response has user:` (Cek apakah user object ada)
+
+  **Contoh Response Sukses:**
+  ```json
+  {
+    "user": {
+      "id": "uuid",
+      "username": "admin",
+      "email": "admin@ayamgeprek.com",
+      "role": "ADMIN"
+    },
+    "message": "Login berhasil"
+  }
+  ```
+
+  **Contoh Response Gagal:**
+  ```json
+  {
+    "error": "Password salah. Pastikan password sudah benar."
+  }
+  ```
+
+  **Langkah 2: Cek Terminal Dev Server**
+  - Buka terminal yang menjalankan `bun run dev`
+  - Cari logs yang berawalan dengan separator `=====`:
+    - `==================================================` (Login Request)
+    - `LOGIN REQUEST`
+    - `PARSED CREDENTIALS`
+    - `CHECKING: User exists`
+    - `FAILED: User tidak ditemukan` atau `SUCCESS: User ditemukan`
+    - `COMPARING: Password`
+    - `FAILED: Password salah` atau `SUCCESS: Password cocok`
+    - `LOGIN SUCCESSFUL`
+    - `REGISTRATION ERROR CATCH` (jika ada error)
+
+  **Langkah 3: Test Health Check API**
+  - Buka browser ke: `http://localhost:3000/api/health`
+  - Cek response:
+    ```json
+    {
+      "status": "healthy",
+      "message": "Database connection OK"
+    }
+    ```
+  - Jika `status: "unhealthy"`, maka database tidak terkoneksi
+
+  **Langkah 4: Cek Database File**
+  - Buka terminal:
+    ```bash
+    cd /home/z/my-project
+    ls -lha prisma/*.db
+    ```
+  - Pastikan file SQLite ada: `custom.db` atau `dev.db`
+  - Jika file tidak ada:
+    ```bash
+    bun run db:push
+    bun run db:seed
+    ```
+
+  **Langkah 5: Test API Langsung dengan curl/Postman**
+  ```bash
+  curl -X POST http://localhost:3000/api/auth/login \
+    -H "Content-Type: application/json" \
+    -d '{
+      "username": "admin",
+      "password": "admin123"
+    }'
+  ```
+
+  - Periksa response:
+    - **Status 200:** Sukses
+    - **Status 400:** Validasi gagal (cek error message)
+    - **Status 500:** Server error (cek terminal logs)
+
+  **Langkah 6: Cek Environment Variables**
+  ```bash
+  cd /home/z/my-project
+  cat .env
+  ```
+
+  - Pastikan DATABASE_URL benar:
+    ```
+    DATABASE_URL=file:./prisma/custom.db
+    ```
+  - Jika salah, update .env file
+
+  **Langkah 7: Cek Dev Server Logs**
+  - Buka terminal dev server
+  - Cari error logs:
+    - `Error: Cannot find module`
+    - `Error: ENOENT: no such file`
+    - `Error: permission denied`
+    - `Error: connection refused`
+
+- **Solutions untuk Common Issues** 🔧
 
   **Solusi 1: Clear Build Cache dan Rebuild**
   ```bash
@@ -206,65 +267,128 @@ Work Log:
   bun run db:generate
   ```
 
-  **Solusi 3: Restart Dev Server**
-  - Stop dev server (Ctrl+C)
-  - Jalankan ulang: `bun run dev`
-
-  **Solusi 4: Cek Database**
+  **Solusi 3: Recreate Database**
   ```bash
-  # Cek apakah file ada
-  ls -lha prisma/*.db
-
-  # Hapus dan recreate jika corrupt
   rm -f prisma/*.db
   bun run db:push
   bun run db:seed
   ```
 
-  **Solusi 5: Cek Environment Variables**
-  ```bash
-  # Pastikan .env file ada dan benar
-  cat .env
+  **Solusi 4: Restart Dev Server**
+  - Stop dev server (Ctrl+C)
+  - Jalankan ulang: `bun run dev`
 
-  # DATABASE_URL harus seperti ini:
-  # DATABASE_URL=file:./prisma/custom.db
-  ```
+  **Solusi 5: Check Port Availability**
+  - Pastikan port 3000 tidak digunakan
+  - Cek: `lsof -i :3000` (Linux) atau `netstat -an | grep 3000` (Mac/Windows)
+
+  **Solusi 6: Update Environment Variables**
+  - Cek .env file
+  - Pastikan DATABASE_URL benar
+  - Pastikan tidak ada extra spaces atau quotes
+
+- **Testing Scenarios** 🧪
+
+  **Scenario 1: Login Sukses dengan Akun Admin**
+  - Username: `admin`
+  - Password: `admin123`
+  - Expected: Login berhasil, redirect ke `/admin`
+
+  **Scenario 2: Login Sukses dengan Akun User**
+  - Username: `user`
+  - Password: `user123`
+  - Expected: Login berhasil, redirect ke `/user`
+
+  **Scenario 3: Login Gagal - Password Salah**
+  - Username: `admin`
+  - Password: `wrongpassword`
+  - Expected: Error message "Password salah"
+
+  **Scenario 4: Login Gagal - Username Tidak Ada**
+  - Username: `nonexistent`
+  - Password: `admin123`
+  - Expected: Error message "Username tidak ditemukan"
+
+  **Scenario 5: Login Gagal - Field Tidak Lengkap**
+  - Username: `` (kosong)
+  - Password: `admin123`
+  - Expected: Error message "Username dan password harus diisi"
 
 - **GIT HISTORY** 📊
 
-  **Latest Commit:** `bf30668` - Bug Fix: Improve registration validation and error handling
-  **Last Push:** 2026-01-12T16:15:xx UTC
-  **Branch:** `master:main`
-  **Repository:** `https://github.com/safir2310/ayamgepreksambalijobaru`
+  | Commit SHA | Waktu | Pesan |
+  |-----------|-------|-------|
+  | `bf30668` | 16:15 UTC | Bug Fix: Improve registration validation and error handling |
+  | `d7190c` | 16:45 UTC | CRITICAL FIX: Add detailed logging and specific error messages for registration debugging |
+  | `Latest Push` | 16:45 UTC | ✅ Successfully pushed to `master:main` |
+
+- **Repository Status** 📦
+
+  | Item | Detail |
+  |------|---------|
+  | **Repository** | `https://github.com/safir2310/ayamgepreksambalijobaru` |
+  | **Default Branch** | `main` |
+  | **Latest Commit** | `d7190c` - Add detailed logging and specific error messages for registration debugging |
+  | **Last Push** | 16:45 UTC |
+  | **Prisma Client** | Regenerated (v6.19.1) |
+  | **Next.js Cache** | Cleared |
+
+- **Files Updated** 📁
+
+  | File | Perubahan |
+  |------|----------|
+  | `/src/app/api/auth/login/route.ts` | Enhanced dengan logging ekstrem detail dan error handling yang lebih baik |
+  | `/src/app/api/auth/register/route.ts` | Enhanced dengan logging detail dan validasi admin verification |
+  | `/src/app/register/page.tsx` | Enhanced dengan form validation yang lengkap dan error state yang jelas |
+  | `/src/app/api/health/route.ts` | Baru ditambahkan untuk cek database connection |
+  | `/worklog.md` | Diupdate dengan instruksi debugging lengkap |
+
+- **Status Akhir** ✅
+
+  ✅ **Login API:** Enhanced dengan logging ekstrem detail dan error handling yang lebih baik
+  ✅ **Login Page:** Memiliki error state yang jelas dan loading states yang baik
+  ✅ **Register API:** Enhanced dengan logging detail dan validasi admin verification yang robust
+  ✅ **Register Page:** Enhanced dengan form validation yang lengkap dan helper text
+  ✅ **Health Check API:** Ditambahkan untuk debugging database connection
+  ✅ **Error Messages:** Spesifik untuk SETIAP error case (tidak lagi generik)
+  ✅ **Console Logging:** Detail untuk setiap langkah dari validasi sampai user creation/login
+  ✅ **Cache:** Next.js cache dibersihkan
+  ✅ **Prisma Client:** Regenerated untuk DB connection terbaru
+  ✅ **Debugging Instructions:** Lengkap untuk menemukan penyebab error
+
+- **CARA DEBUGGING LOGIN** 📝
+
+  **Dengan logging yang detail ini, sekarang bisa langsung melihat:**
+  - Apa data yang dikirim ke API
+  - Dimana validasi yang gagal (jika ada)
+  - Apakah user ditemukan di database
+  - Apakah password cocok
+  - Apakah user berhasil dibuat atau login
+  - Jika ada error, pesan error yang spesifik apa
+
+  **Jika masih error, silakan:**
+  1. Buka console browser (F12) saat login
+  2. Buka terminal dev server dan cari logs yang berawalan `=====` separator
+  3. Cek health check API: `http://localhost:3000/api/health`
+  4. Baca pesan error yang spesifik yang muncul
+  5. Berikan lengkap log dari browser console dan terminal untuk further analysis
 
 Stage Summary:
-- Registration form telah ditingkatkan dengan:
-  * Better validation untuk semua field
-  * Error state yang jelas dan spesifik
-  * Loading states yang lebih baik
-  * Console logging yang sangat detail
-  * Helper text untuk admin verification
-
-- Registration API telah ditingkatkan dengan:
-  * Logging yang sangat detail (dibatasi separator)
-  * Pesan error yang spesifik untuk SETIAP error case
-  * Error stack tracing untuk server errors
-  * Better validation order
-  * Robust admin verification dengan DDMMYY format
-
+- Login API telah ditingkatkan dengan logging yang sangat detail
+- Error messages lebih spesifik untuk SETIAP error case
 - Health check API ditambahkan untuk debugging database connection
+- Error handling yang lebih baik dengan stack tracing
+- Console logging dibatasi dengan separator untuk kemudahan debugging
+- Cache Next.js dibersihkan
+- Prisma client regenerated
+- Instruksi debugging lengkap disediakan
 
-- Instructions debugging lengkap disediakan untuk menemukan penyebab error
-
-- Dengan logging yang detail, sekarang bisa melihat PERSIS di langkah mana yang gagal:
-  * Request header apa yang dikirim
-  * Validasi mana yang gagal
-  * Uniqueness check mana yang gagal
-  * Tanggal lahir apa yang di-parsing
-  * Expected code apa yang di-generate
-  * Provided code apa yang dikirim
-  * Apakah code cocok atau tidak
-  * Apakah user berhasil dibuat
-  * Jika error, apa stack trace yang muncul
+- Dengan logging yang detail ini, sekarang bisa langsung melihat PERSIS di langkah mana yang gagal:
+  * Apa yang dikirim ke API
+  * Dimana validasi yang gagal
+  * Apakah user ditemukan di database
+  * Apakah password cocok
+  * Apakah login berhasil
+  * Jika error, pesan error yang spesifik apa!
 
 ---
