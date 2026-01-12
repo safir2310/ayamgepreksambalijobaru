@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  password      String
+  email         String   @unique
+  phone         String   @unique
+  address       String?
+  role          String   @default("USER")
+  points        Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  orders        Order[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  discountPrice Float?
+  category    String   // "MAKANAN", "MINUMAN"
+  image       String?
+  isPromotion Boolean  @default(false)
+  isNew       Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  status      String     @default("MENUNGGU_PERSETUJUAN") // "MENUNGGU_PERSETUJUAN", "DISETUJUI", "SEDANG_DIPROSES", "SELESAI", "CANCEL"
+  totalAmount Float
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  items       OrderItem[]
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+  subtotal  Float
+}
+
+model StoreProfile {
+  id          String   @id @default(cuid())
+  name        String   @default("AYAM GEPREK SAMBAL IJO")
+  slogan      String   @default("Pedasnya Bikin Nagih!")
+  address     String
+  phone       String   @default("085260812758")
+  instagram   String?
+  facebook    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
