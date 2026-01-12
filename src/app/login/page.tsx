@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ChefHat, ArrowLeft, Lock, User as UserIcon } from 'lucide-react'
+import { ChefHat, ArrowLeft, Lock, User as UserIcon, Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import Header from '@/components/Header'
@@ -16,6 +16,7 @@ export default function LoginPage() {
   const { login } = useAppStore()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -26,13 +27,49 @@ export default function LoginPage() {
       ...formData,
       [e.target.name]: e.target.value,
     })
+    // Clear error when user types
+    setError(null)
+  }
+
+  const validateForm = () => {
+    // Basic validation
+    if (!formData.username.trim()) {
+      setError('Username harus diisi')
+      return false
+    }
+    if (formData.username.length < 3) {
+      setError('Username minimal 3 karakter')
+      return false
+    }
+    if (!formData.password.trim()) {
+      setError('Password harus diisi')
+      return false
+    }
+    if (formData.password.length < 6) {
+      setError('Password minimal 6 karakter')
+      return false
+    }
+
+    return true
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validate form
+    if (!validateForm()) {
+      return
+    }
+
     setIsLoading(true)
+    setError(null)
 
     try {
+      console.log('='.repeat(50))
+      console.log('LOGIN REQUEST')
+      console.log('='.repeat(50))
+      console.log('Username:', formData.username)
+
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -41,41 +78,82 @@ export default function LoginPage() {
         body: JSON.stringify(formData),
       })
 
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
+
       const data = await response.json()
 
+      console.log('Response data:', data)
+      console.log('Response has error:', !!data.error)
+      console.log('Response has user:', !!data.user)
+      console.log('='.repeat(50))
+
       if (response.ok) {
-        login({
-          id: data.user.id,
-          username: data.user.username,
-          email: data.user.email,
-          phone: data.user.phone,
-          address: data.user.address,
-          role: data.user.role as 'USER' | 'ADMIN',
-          points: data.user.points,
-        })
+        // Check if there's an error message in success response
+        if (data.error) {
+          setError(data.error)
 
-        toast({
-          title: 'Login Berhasil',
-          description: 'Selamat datang kembali!',
-        })
+          toast({
+            title: 'Login Gagal',
+            description: data.error,
+            variant: 'destructive',
+          })
 
-        // Redirect based on role
-        if (data.user.role === 'ADMIN') {
-          router.push('/admin')
+          console.error('Login failed with error in success response:', data)
         } else {
-          router.push('/user')
+          // Success - no error message
+          toast({
+            title: 'Login Berhasil',
+            description: data.message || 'Selamat datang kembali!',
+          })
+
+          // Store user data in Zustand store
+          login({
+            id: data.user.id,
+            username: data.user.username,
+            email: data.user.email,
+            phone: data.user.phone,
+            address: data.user.address,
+            role: data.user.role as 'USER' | 'ADMIN',
+            points: data.user.points,
+          })
+
+          console.log('User logged in successfully:', data.user.username)
+          console.log('User role:', data.user.role)
+
+          // Redirect based on role
+          setTimeout(() => {
+            if (data.user.role === 'ADMIN') {
+              router.push('/admin')
+            } else {
+              router.push('/user')
+            }
+          }, 500)
         }
       } else {
+        // HTTP error
+        const errorMsg = data.error || data.message || 'Terjadi kesalahan saat login'
+
+        setError(errorMsg)
+
         toast({
           title: 'Login Gagal',
-          description: data.error || 'Terjadi kesalahan saat login',
+          description: errorMsg,
           variant: 'destructive',
         })
+
+        console.error('HTTP Error:', response.status)
+        console.error('Response data:', data)
       }
     } catch (error) {
+      console.error('Login error:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Terjadi kesalahan jaringan'
+
+      setError(errorMsg)
+
       toast({
         title: 'Login Gagal',
-        description: 'Terjadi kesalahan jaringan',
+        description: errorMsg,
         variant: 'destructive',
       })
     } finally {
@@ -136,15 +214,29 @@ export default function LoginPage() {
               Login
             </h1>
             <p className="text-center text-gray-600 mb-6">
-              Masuk ke AYAM GEPREK SAMBAL IJO
+              Masuk ke akun AYAM GEPREK SAMBAL IJO
             </p>
+
+            {/* Error Message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6"
+              >
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <Loader2 className="w-4 h-4" />
+                  {error}
+                </p>
+              </motion.div>
+            )}
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Username */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Username
+                  Username <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -153,8 +245,9 @@ export default function LoginPage() {
                     name="username"
                     value={formData.username}
                     onChange={handleChange}
-                    placeholder="Masukkan username"
+                    placeholder="Masukkan username (minimal 3 karakter)"
                     className="pl-10"
+                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -163,7 +256,7 @@ export default function LoginPage() {
               {/* Password */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
+                  Password <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -172,8 +265,9 @@ export default function LoginPage() {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder="Masukkan password"
+                    placeholder="Masukkan password (minimal 6 karakter)"
                     className="pl-10"
+                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -184,9 +278,19 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white py-6 text-lg"
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white py-6 text-lg flex items-center gap-2"
                 >
-                  {isLoading ? 'Memproses...' : 'Login'}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Memproses...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-5 h-5" />
+                      <span>Login</span>
+                    </>
+                  )}
                 </Button>
               </motion.div>
             </form>
