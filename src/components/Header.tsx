@@ -95,7 +95,7 @@ export default function Header({
             </motion.button>
 
             {/* Dashboard Icon - Show when logged in */}
-            {isLoggedIn && (
+            {isLoggedIn && userRole && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}

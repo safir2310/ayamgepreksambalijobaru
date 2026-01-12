@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast'
 
 export default function CartPage() {
   const router = useRouter()
-  const { cart, updateQuantity, removeFromCart, clearCart, getCartTotal, isLoggedIn, user } = useAppStore()
+  const { cart, updateQuantity, removeFromCart, clearCart, getCartTotal, isLoggedIn, user, logout } = useAppStore()
   const { toast } = useToast()
   const [isCheckingOut, setIsCheckingOut] = useState(false)
 
@@ -153,7 +153,7 @@ Terima Kasih Atas Pesanan Anda!
         isLoggedIn={isLoggedIn}
         userRole={user?.role}
         onLogout={() => {
-          useAppStore.getState().logout()
+          logout()
           router.push('/')
         }}
         onNavigateToCart={() => {}}

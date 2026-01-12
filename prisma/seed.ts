@@ -38,7 +38,9 @@ async function main() {
   })
   console.log('Created/Updated test user:', user.username)
 
-  // Delete existing products first
+  // Delete existing data first
+  await prisma.orderItem.deleteMany({})
+  await prisma.order.deleteMany({})
   await prisma.product.deleteMany({})
 
   // Create products

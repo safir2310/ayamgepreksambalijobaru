@@ -27,7 +27,7 @@ type Category = 'SEMUA' | 'MAKANAN' | 'MINUMAN' | 'PROMOSI' | 'TERBARU'
 
 export default function Home() {
   const router = useRouter()
-  const { cart, addToCart, isLoggedIn, user, logout } = useAppStore()
+  const { addToCart, isLoggedIn, user, logout, getCartItemCount } = useAppStore()
   const [selectedCategory, setSelectedCategory] = useState<Category>('SEMUA')
   const [products, setProducts] = useState<Product[]>([])
 
@@ -98,7 +98,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-orange-400">
       <Header
-        cartCount={cart.length}
+        cartCount={getCartItemCount()}
         isLoggedIn={isLoggedIn}
         userRole={user?.role}
         onLogout={handleLogout}

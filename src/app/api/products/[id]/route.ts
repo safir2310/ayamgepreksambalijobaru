@@ -57,12 +57,12 @@ export async function PUT(
       data: {
         name,
         description,
-        price: price ? parseFloat(price) : undefined,
+        price: parseFloat(price),
         discountPrice: discountPrice ? parseFloat(discountPrice) : null,
         category,
         image,
-        isPromotion,
-        isNew,
+        isPromotion: isPromotion || false,
+        isNew: isNew || false,
       },
     })
 
@@ -83,6 +83,15 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
+
+    // First delete all order items referencing this product
+    await db.orderItem.deleteMany({
+      where: {
+        productId: id,
+      },
+    })
+
+    // Then delete the product
     await db.product.delete({
       where: {
         id,

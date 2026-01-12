@@ -13,6 +13,16 @@ export async function GET(
       where: {
         id,
       },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        phone: true,
+        address: true,
+        role: true,
+        points: true,
+        createdAt: true,
+      },
     })
 
     if (!user) {
@@ -22,10 +32,7 @@ export async function GET(
       )
     }
 
-    // Remove password from response
-    const { password, ...userWithoutPassword } = user
-
-    return NextResponse.json(userWithoutPassword)
+    return NextResponse.json(user)
   } catch (error) {
     console.error('Error fetching user:', error)
     return NextResponse.json(
@@ -35,7 +42,7 @@ export async function GET(
   }
 }
 
-// PUT - Update user
+// PUT - Update a user
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -43,9 +50,13 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { address, password, phone } = body
+    const { password, address, phone } = body
 
     const updateData: any = {}
+
+    if (password) {
+      updateData.password = await hash(password, 10)
+    }
 
     if (address !== undefined) {
       updateData.address = address
@@ -55,21 +66,24 @@ export async function PUT(
       updateData.phone = phone
     }
 
-    if (password) {
-      updateData.password = await hash(password, 10)
-    }
-
     const user = await db.user.update({
       where: {
         id,
       },
       data: updateData,
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        phone: true,
+        address: true,
+        role: true,
+        points: true,
+        createdAt: true,
+      },
     })
 
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = user
-
-    return NextResponse.json(userWithoutPassword)
+    return NextResponse.json(user)
   } catch (error) {
     console.error('Error updating user:', error)
     return NextResponse.json(
@@ -79,13 +93,15 @@ export async function PUT(
   }
 }
 
-// DELETE - Delete user
+// DELETE - Delete a user
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
+
+    // Delete user (this will cascade delete orders)
     await db.user.delete({
       where: {
         id,

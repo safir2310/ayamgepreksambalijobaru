@@ -1,3 +1,4 @@
+// Zustand Store for AYAM GEPREK SAMBAL IJO
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
@@ -11,38 +12,42 @@ export interface CartItem {
 }
 
 interface AppState {
-  // User State
+  // User state
   isLoggedIn: boolean
   user: {
     id: string
     username: string
     email: string
+    phone: string
+    address?: string
     role: 'USER' | 'ADMIN'
     points: number
   } | null
 
-  // Cart State
+  // Cart state
   cart: CartItem[]
 
   // Actions
   login: (user: AppState['user']) => void
   logout: () => void
+  updateUser: (user: Partial<AppState['user']>) => void
   addToCart: (item: CartItem) => void
   removeFromCart: (productId: string) => void
   updateQuantity: (productId: string, quantity: number) => void
   clearCart: () => void
   getCartTotal: () => number
+  getCartItemCount: () => number
 }
 
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      // Initial State
+      // Initial state
       isLoggedIn: false,
       user: null,
       cart: [],
 
-      // Login
+      // Login action
       login: (user) => {
         set({
           isLoggedIn: true,
@@ -50,7 +55,7 @@ export const useAppStore = create<AppState>()(
         })
       },
 
-      // Logout
+      // Logout action
       logout: () => {
         set({
           isLoggedIn: false,
@@ -58,7 +63,17 @@ export const useAppStore = create<AppState>()(
         })
       },
 
-      // Add to Cart
+      // Update user action
+      updateUser: (userData) => {
+        const currentUser = get().user
+        if (currentUser) {
+          set({
+            user: { ...currentUser, ...userData },
+          })
+        }
+      },
+
+      // Add to cart action
       addToCart: (item) => {
         const cart = get().cart
         const existingItem = cart.find((i) => i.productId === item.productId)
@@ -76,14 +91,14 @@ export const useAppStore = create<AppState>()(
         }
       },
 
-      // Remove from Cart
+      // Remove from cart action
       removeFromCart: (productId) => {
         set({
           cart: get().cart.filter((item) => item.productId !== productId),
         })
       },
 
-      // Update Quantity
+      // Update quantity action
       updateQuantity: (productId, quantity) => {
         if (quantity <= 0) {
           get().removeFromCart(productId)
@@ -96,18 +111,24 @@ export const useAppStore = create<AppState>()(
         }
       },
 
-      // Clear Cart
+      // Clear cart action
       clearCart: () => {
         set({ cart: [] })
       },
 
-      // Get Cart Total
+      // Get cart total
       getCartTotal: () => {
         const cart = get().cart
         return cart.reduce((total, item) => {
           const price = item.discountPrice || item.price
           return total + price * item.quantity
         }, 0)
+      },
+
+      // Get cart item count
+      getCartItemCount: () => {
+        const cart = get().cart
+        return cart.reduce((total, item) => total + item.quantity, 0)
       },
     }),
     {

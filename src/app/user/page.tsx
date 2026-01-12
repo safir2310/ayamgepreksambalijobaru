@@ -36,9 +36,10 @@ interface Order {
   totalAmount: number
   createdAt: string
   items: {
+    id: string
     product: {
       name: string
-    }
+    } | null
     quantity: number
     price: number
     subtotal: number
@@ -47,7 +48,7 @@ interface Order {
 
 export default function UserDashboardPage() {
   const router = useRouter()
-  const { user, isLoggedIn, logout, cart } = useAppStore()
+  const { user, isLoggedIn, logout, cart, updateUser } = useAppStore()
   const { toast } = useToast()
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -63,7 +64,7 @@ export default function UserDashboardPage() {
       return
     }
     fetchOrders()
-  }, [isLoggedIn, user])
+  }, [isLoggedIn, user?.id])
 
   const fetchOrders = async () => {
     if (!user?.id) return
@@ -94,6 +95,8 @@ export default function UserDashboardPage() {
       })
 
       if (response.ok) {
+        const userData = await response.json()
+        updateUser(userData)
         toast({
           title: 'Profil Berhasil Diperbarui',
           description: 'Data profil Anda telah diperbarui',
@@ -154,7 +157,7 @@ export default function UserDashboardPage() {
     const numericUserId = user?.id ? generateNumericId(user.id, 5) : '00000'
 
     const receiptContent = `
-<span style="color: orange; font-weight: bold; font-size: 18px;">AYAM GEPREK SAMBAL IJO</span>
+AYAM GEPREK SAMBAL IJO
 ---------------------
 ID Struk: #${numericReceiptId}
 ID User: #${numericUserId}
@@ -175,7 +178,20 @@ Terima Kasih Atas Pesanan Anda!
 
     const printWindow = window.open('', '_blank')
     if (printWindow) {
-      printWindow.document.write(`<pre style="font-family: monospace; white-space: pre-wrap;">${receiptContent}</pre>`)
+      printWindow.document.write(`
+        <html>
+        <head>
+          <style>
+            .store-name { color: #f97316; font-weight: bold; font-size: 18px; }
+            pre { font-family: monospace; white-space: pre-wrap; }
+          </style>
+        </head>
+        <body>
+          <pre class="store-name">AYAM GEPREK SAMBAL IJO</pre>
+          <pre>${receiptContent.split('\n').slice(1).join('\n')}</pre>
+        </body>
+        </html>
+      `)
       printWindow.document.close()
       printWindow.print()
     }
@@ -420,10 +436,19 @@ Terima Kasih Atas Pesanan Anda!
               {/* Orders Tab */}
               <TabsContent value="orders">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Receipt className="w-5 h-5" />
-                    Struk & Transaksi
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Receipt className="w-5 h-5" />
+                      Struk & Transaksi
+                    </CardTitle>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={fetchOrders}
+                    >
+                      Refresh
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {orders.length === 0 ? (
@@ -432,53 +457,61 @@ Terima Kasih Atas Pesanan Anda!
                       <p className="text-gray-500">Belum ada pesanan</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
                       {orders.map((order) => (
                         <Card key={order.id} className="bg-gray-50">
                           <CardContent className="p-4">
-                            <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-start justify-between mb-3">
                               <div>
-                                <p className="font-semibold text-gray-800">
-                                  Pesanan #{order.id.slice(-6)}
-                                </p>
                                 <p className="text-sm text-gray-600">
-                                  {new Date(order.createdAt).toLocaleDateString('id-ID')}
+                                  {new Date(order.createdAt).toLocaleDateString('id-ID', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
                                 </p>
                               </div>
-                              {getStatusBadge(order.status)}
-                            </div>
-
-                            <div className="mb-4">
-                              {order.items.map((item, index) => (
-                                <div
-                                  key={index}
-                                  className="flex justify-between text-sm text-gray-600 py-1"
-                                >
-                                  <span>{item.product.name} x{item.quantity}</span>
-                                  <span>Rp {item.subtotal.toLocaleString('id-ID')}</span>
-                                </div>
-                              ))}
-                            </div>
-
-                            <div className="border-t pt-3 flex justify-between items-center">
-                              <p className="font-bold text-gray-800">
-                                Total: Rp {order.totalAmount.toLocaleString('id-ID')}
-                              </p>
                               <div className="flex gap-2">
                                 <Button
-                                  size="sm"
-                                  variant="outline"
+                                  size="icon"
+                                  variant="ghost"
                                   onClick={() => handlePrintReceipt(order)}
+                                  className="text-blue-500 hover:text-blue-600"
                                 >
                                   <Printer className="w-4 h-4" />
                                 </Button>
                                 <Button
-                                  size="sm"
-                                  variant="outline"
+                                  size="icon"
+                                  variant="ghost"
                                   onClick={() => handleDownloadReceipt(order)}
+                                  className="text-green-500 hover:text-green-600"
                                 >
                                   <Download className="w-4 h-4" />
                                 </Button>
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-2 mb-3">
+                              {order.items?.map((item) => (
+                                <div key={item.id} className="flex justify-between text-sm">
+                                  <span className="text-gray-700">{item.product?.name || 'Produk Terhapus'} x{item.quantity}</span>
+                                  <span className="font-medium text-gray-900">
+                                    Rp {item.subtotal.toLocaleString('id-ID')}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex items-center justify-between pt-3 border-t border-gray-300">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-600">Status:</span>
+                                {getStatusBadge(order.status)}
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm text-gray-600">Total:</p>
+                                <p className="text-xl font-bold text-orange-600">
+                                  Rp {order.totalAmount.toLocaleString('id-ID')}
+                                </p>
                               </div>
                             </div>
                           </CardContent>

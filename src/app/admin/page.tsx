@@ -29,7 +29,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import { useAppStore } from '@/store/store'
 import { useToast } from '@/hooks/use-toast'
 
 interface Product {
@@ -66,9 +65,10 @@ interface Order {
     address?: string
   }
   items: {
+    id: string
     product: {
       name: string
-    }
+    } | null
     quantity: number
     price: number
     subtotal: number
@@ -77,7 +77,6 @@ interface Order {
 
 export default function AdminDashboardPage() {
   const router = useRouter()
-  const { user, isLoggedIn, logout } = useAppStore()
   const { toast } = useToast()
   const [products, setProducts] = useState<Product[]>([])
   const [users, setUsers] = useState<User[]>([])
@@ -107,15 +106,11 @@ export default function AdminDashboardPage() {
   })
 
   useEffect(() => {
-    if (!isLoggedIn || !user || user.role !== 'ADMIN') {
-      router.push('/login')
-      return
-    }
     fetchProducts()
     fetchUsers()
     fetchOrders()
     fetchStoreProfile()
-  }, [isLoggedIn, user])
+  }, [])
 
   const fetchProducts = async () => {
     try {
@@ -427,7 +422,7 @@ export default function AdminDashboardPage() {
     const numericUserId = order.user.id ? generateNumericId(order.user.id, 5) : '00000'
 
     const receiptContent = `
-<span style="color: orange; font-weight: bold; font-size: 18px;">AYAM GEPREK SAMBAL IJO</span>
+AYAM GEPREK SAMBAL IJO
 ---------------------
 ID Struk: #${numericReceiptId}
 ID User: #${numericUserId}
@@ -450,7 +445,20 @@ Terima Kasih Atas Pesanan Anda!
 
     const printWindow = window.open('', '_blank')
     if (printWindow) {
-      printWindow.document.write(`<pre style="font-family: monospace; white-space: pre-wrap;">${receiptContent}</pre>`)
+      printWindow.document.write(`
+        <html>
+        <head>
+          <style>
+            .store-name { color: #f97316; font-weight: bold; font-size: 18px; }
+            pre { font-family: monospace; white-space: pre-wrap; }
+          </style>
+        </head>
+        <body>
+          <pre class="store-name">AYAM GEPREK SAMBAL IJO</pre>
+          <pre>${receiptContent.split('\n').slice(1).join('\n')}</pre>
+        </body>
+        </html>
+      `)
       printWindow.document.close()
       printWindow.print()
     }
@@ -492,20 +500,15 @@ Terima Kasih Atas Pesanan Anda!
   }
 
   const handleLogout = () => {
-    logout()
-    router.push('/')
-  }
-
-  if (!user || user.role !== 'ADMIN') {
-    return null
+    router.push('/login')
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-orange-400">
       <Header
         cartCount={0}
-        isLoggedIn={isLoggedIn}
-        userRole={user?.role}
+        isLoggedIn={true}
+        userRole="ADMIN"
         onLogout={handleLogout}
         onNavigateToCart={() => {}}
         onNavigateToLogin={() => router.push('/login')}
@@ -571,8 +574,8 @@ Terima Kasih Atas Pesanan Anda!
             <Card className="bg-white">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-green-100 rounded-full">
-                    <ShoppingCart className="w-6 h-6 text-green-500" />
+                  <div className="p-3 bg-purple-100 rounded-full">
+                    <ShoppingCart className="w-6 h-6 text-purple-500" />
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Total Pesanan</p>
@@ -585,8 +588,8 @@ Terima Kasih Atas Pesanan Anda!
             <Card className="bg-white">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-purple-100 rounded-full">
-                    <CheckCircle2 className="w-6 h-6 text-purple-500" />
+                  <div className="p-3 bg-green-100 rounded-full">
+                    <CheckCircle2 className="w-6 h-6 text-green-500" />
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Pesanan Selesai</p>
@@ -602,184 +605,328 @@ Terima Kasih Atas Pesanan Anda!
           {/* Main Content Tabs */}
           <Card className="bg-white">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="products" className="flex justify-center items-center">
-                  <Package className="w-6 h-6" />
+              <TabsList className="grid w-full grid-cols-4 h-16">
+                <TabsTrigger value="products" className="flex items-center justify-center gap-2 h-full data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+                  <Package className="w-4 h-4" />
+                  <span>Produk</span>
                 </TabsTrigger>
-                <TabsTrigger value="users" className="flex justify-center items-center">
-                  <Users className="w-6 h-6" />
+                <TabsTrigger value="users" className="flex items-center justify-center gap-2 h-full data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+                  <Users className="w-4 h-4" />
+                  <span>User</span>
                 </TabsTrigger>
-                <TabsTrigger value="orders" className="flex justify-center items-center">
-                  <ShoppingCart className="w-6 h-6" />
+                <TabsTrigger value="orders" className="flex items-center justify-center gap-2 h-full data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>Pesanan</span>
                 </TabsTrigger>
-                <TabsTrigger value="profile" className="flex justify-center items-center">
-                  <Store className="w-6 h-6" />
+                <TabsTrigger value="store" className="flex items-center justify-center gap-2 h-full data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+                  <Store className="w-4 h-4" />
+                  <span>Profil Toko</span>
                 </TabsTrigger>
               </TabsList>
 
               {/* Products Tab */}
               <TabsContent value="products">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Package className="w-5 h-5" />
-                      Kelola Produk
-                    </CardTitle>
-                    <Button onClick={handleAddProduct} className="bg-orange-500 hover:bg-orange-600">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Tambah Produk
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
+                <div className="p-6">
                   {isEditingProduct ? (
-                    <form onSubmit={handleSaveProduct} className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="mb-6">
+                      <h3 className="text-lg font-bold mb-4">
+                        {selectedProduct ? 'Edit Produk' : 'Tambah Produk Baru'}
+                      </h3>
+                      <form onSubmit={handleSaveProduct} className="space-y-4">
                         <div>
                           <Label>Nama Produk</Label>
                           <Input
+                            type="text"
                             value={productFormData.name}
-                            onChange={(e) =>
-                              setProductFormData({ ...productFormData, name: e.target.value })
-                            }
+                            onChange={(e) => setProductFormData({ ...productFormData, name: e.target.value })}
+                            placeholder="Masukkan nama produk"
                             required
                           />
+                        </div>
+                        <div>
+                          <Label>Deskripsi</Label>
+                          <Textarea
+                            value={productFormData.description}
+                            onChange={(e) => setProductFormData({ ...productFormData, description: e.target.value })}
+                            placeholder="Masukkan deskripsi produk"
+                            rows={3}
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>Harga</Label>
+                            <Input
+                              type="number"
+                              value={productFormData.price}
+                              onChange={(e) => setProductFormData({ ...productFormData, price: e.target.value })}
+                              placeholder="Harga normal"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label>Harga Diskon</Label>
+                            <Input
+                              type="number"
+                              value={productFormData.discountPrice}
+                              onChange={(e) => setProductFormData({ ...productFormData, discountPrice: e.target.value })}
+                              placeholder="Harga diskon (opsional)"
+                            />
+                          </div>
                         </div>
                         <div>
                           <Label>Kategori</Label>
                           <select
                             value={productFormData.category}
-                            onChange={(e) =>
-                              setProductFormData({ ...productFormData, category: e.target.value })
-                            }
-                            className="w-full px-3 py-2 border rounded-md"
+                            onChange={(e) => setProductFormData({ ...productFormData, category: e.target.value })}
+                            className="w-full p-2 border rounded"
+                            required
                           >
-                            <option value="MAKANAN">Makanan</option>
-                            <option value="MINUMAN">Minuman</option>
+                            <option value="MAKANAN">MAKANAN</option>
+                            <option value="MINUMAN">MINUMAN</option>
                           </select>
                         </div>
                         <div>
-                          <Label>Harga</Label>
+                          <Label>URL Gambar</Label>
                           <Input
-                            type="number"
-                            value={productFormData.price}
-                            onChange={(e) =>
-                              setProductFormData({ ...productFormData, price: e.target.value })
-                            }
-                            required
+                            type="text"
+                            value={productFormData.image}
+                            onChange={(e) => setProductFormData({ ...productFormData, image: e.target.value })}
+                            placeholder="URL gambar produk (opsional)"
                           />
                         </div>
-                        <div>
-                          <Label>Harga Diskon (Opsional)</Label>
-                          <Input
-                            type="number"
-                            value={productFormData.discountPrice}
-                            onChange={(e) =>
-                              setProductFormData({ ...productFormData, discountPrice: e.target.value })
-                            }
-                          />
+                        <div className="flex gap-4">
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={productFormData.isPromotion}
+                              onCheckedChange={(checked) => setProductFormData({ ...productFormData, isPromotion: checked })}
+                            />
+                            <Label>Promosi</Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={productFormData.isNew}
+                              onCheckedChange={(checked) => setProductFormData({ ...productFormData, isNew: checked })}
+                            />
+                            <Label>Produk Baru</Label>
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <Label>Deskripsi</Label>
-                        <Textarea
-                          value={productFormData.description}
-                          onChange={(e) =>
-                            setProductFormData({ ...productFormData, description: e.target.value })
-                          }
-                          rows={3}
-                        />
-                      </div>
-                      <div>
-                        <Label>URL Gambar (Opsional)</Label>
-                        <Input
-                          value={productFormData.image}
-                          onChange={(e) =>
-                            setProductFormData({ ...productFormData, image: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={productFormData.isPromotion}
-                            onCheckedChange={(checked) =>
-                              setProductFormData({ ...productFormData, isPromotion: checked })
-                            }
-                          />
-                          <Label>Produk Promosi</Label>
+                        <div className="flex gap-2">
+                          <Button type="submit" disabled={isLoading} className="bg-orange-500 hover:bg-orange-600">
+                            {isLoading ? 'Menyimpan...' : 'Simpan'}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsEditingProduct(false)}
+                          >
+                            Batal
+                          </Button>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={productFormData.isNew}
-                            onCheckedChange={(checked) =>
-                              setProductFormData({ ...productFormData, isNew: checked })
-                            }
-                          />
-                          <Label>Produk Baru</Label>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button type="submit" disabled={isLoading} className="bg-orange-500 hover:bg-orange-600">
-                          {isLoading ? 'Memproses...' : 'Simpan'}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setIsEditingProduct(false)}
-                        >
-                          Batal
-                        </Button>
-                      </div>
-                    </form>
+                      </form>
+                    </div>
                   ) : (
-                    <div className="space-y-4 max-h-[500px] overflow-y-auto">
-                      {products.map((product) => (
-                        <Card key={product.id} className="bg-gray-50">
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <h3 className="font-semibold text-gray-800">{product.name}</h3>
-                                  {product.isPromotion && (
-                                    <Badge className="bg-red-500">Promosi</Badge>
-                                  )}
-                                  {product.isNew && (
-                                    <Badge className="bg-green-500">Baru</Badge>
-                                  )}
-                                  <Badge variant="outline">{product.category}</Badge>
-                                </div>
-                                <p className="text-sm text-gray-600 mb-2">
-                                  {product.description || 'Tidak ada deskripsi'}
-                                </p>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-bold text-orange-500">
-                                    Rp {product.price.toLocaleString('id-ID')}
+                    <Button onClick={handleAddProduct} className="mb-6 bg-orange-500 hover:bg-orange-600">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Tambah Produk
+                    </Button>
+                  )}
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    {products.map((product) => (
+                      <Card key={product.id} className="bg-gray-50">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h4 className="font-semibold text-gray-800">{product.name}</h4>
+                                {product.isPromotion && (
+                                  <Badge className="bg-red-500 text-white">Promosi</Badge>
+                                )}
+                                {product.isNew && (
+                                  <Badge className="bg-green-500 text-white">Baru</Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600 mb-1">
+                                {product.category}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-orange-600">
+                                  Rp {product.price.toLocaleString('id-ID')}
+                                </span>
+                                {product.discountPrice && (
+                                  <span className="line-through text-gray-400 text-sm">
+                                    Rp {product.discountPrice.toLocaleString('id-ID')}
                                   </span>
-                                  {product.discountPrice && (
-                                    <span className="text-sm text-gray-400 line-through">
-                                      Rp {product.discountPrice.toLocaleString('id-ID')}
-                                    </span>
-                                  )}
-                                </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => handleEditProduct(product)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => handleDeleteProduct(product.id)}
+                                className="text-red-500 hover:text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Users Tab */}
+              <TabsContent value="users">
+                <div className="p-6 space-y-4 max-h-96 overflow-y-auto">
+                  {users.map((user) => (
+                    <Card key={user.id} className="bg-gray-50">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="font-semibold text-gray-800">{user.username}</h4>
+                              <Badge className={user.role === 'ADMIN' ? 'bg-purple-500 text-white' : 'bg-blue-500 text-white'}>
+                                {user.role}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-gray-600">{user.email}</p>
+                            <p className="text-sm text-gray-600">{user.phone}</p>
+                            <p className="text-sm text-gray-600">Poin: {user.points}</p>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteUser(user.id)}
+                              className="text-red-500 hover:text-red-600"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                            <div className="flex gap-1">
+                              <Input
+                                type="password"
+                                placeholder="Password baru"
+                                value={userPasswordData}
+                                onChange={(e) => setUserPasswordData(e.target.value)}
+                                className="w-32 text-sm"
+                              />
+                              <Button
+                                size="sm"
+                                onClick={() => handleUpdateUserPassword(user.id)}
+                                className="bg-orange-500 hover:bg-orange-600"
+                              >
+                                Update
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </TabsContent>
+
+              {/* Orders Tab */}
+              <TabsContent value="orders">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <ShoppingCart className="w-5 h-5" />
+                      Pesanan
+                    </CardTitle>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={fetchOrders}
+                    >
+                      Refresh
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {orders.length === 0 ? (
+                    <div className="text-center py-8">
+                      <ShoppingCart className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                      <p className="text-gray-500">Belum ada pesanan</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {orders.map((order) => (
+                        <Card key={order.id} className="bg-gray-50">
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between mb-3">
+                              <div>
+                                <p className="text-sm text-gray-600">
+                                  {new Date(order.createdAt).toLocaleDateString('id-ID', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric',
+                                  })}
+                                </p>
+                                <p className="font-semibold text-gray-800">{order.user.username}</p>
                               </div>
                               <div className="flex gap-2">
                                 <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditProduct(product)}
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handlePrintReceipt(order)}
+                                  className="text-blue-500 hover:text-blue-600"
                                 >
-                                  <Edit className="w-4 h-4" />
+                                  <Printer className="w-4 h-4" />
                                 </Button>
                                 <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleDeleteProduct(product.id)}
-                                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleDownloadReceipt(order)}
+                                  className="text-green-500 hover:text-green-600"
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Download className="w-4 h-4" />
                                 </Button>
                               </div>
+                            </div>
+                            <div className="flex flex-col gap-2 mb-3">
+                              {order.items?.map((item) => (
+                                <div key={item.id} className="flex justify-between text-sm">
+                                  <span className="text-gray-700">{item.product?.name || 'Produk Terhapus'} x{item.quantity}</span>
+                                  <span className="font-medium text-gray-900">
+                                    Rp {item.subtotal.toLocaleString('id-ID')}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex items-center justify-between pt-3 border-t border-gray-300">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-600">Status:</span>
+                                {getStatusBadge(order.status)}
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm text-gray-600">Total:</p>
+                                <p className="text-xl font-bold text-orange-600">
+                                  Rp {order.totalAmount.toLocaleString('id-ID')}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="pt-3 border-t border-gray-300">
+                              <select
+                                value={order.status}
+                                onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
+                                className="w-full p-2 border rounded bg-white"
+                              >
+                                <option value="MENUNGGU_PERSETUJUAN">Menunggu Persetujuan</option>
+                                <option value="DISETUJUI">Disetujui</option>
+                                <option value="SEDANG_DIPROSES">Sedang Diproses</option>
+                                <option value="SELESAI">Selesai</option>
+                                <option value="CANCEL">Cancel</option>
+                              </select>
                             </div>
                           </CardContent>
                         </Card>
@@ -789,242 +936,66 @@ Terima Kasih Atas Pesanan Anda!
                 </CardContent>
               </TabsContent>
 
-              {/* Users Tab */}
-              <TabsContent value="users">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Kelola User
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4 max-h-[500px] overflow-y-auto">
-                    {users.map((user) => (
-                      <Card key={user.id} className="bg-gray-50">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h3 className="font-semibold text-gray-800">{user.username}</h3>
-                                <Badge
-                                  className={
-                                    user.role === 'ADMIN'
-                                      ? 'bg-purple-500'
-                                      : 'bg-blue-500'
-                                  }
-                                >
-                                  {user.role}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-gray-600 mb-1">
-                                Email: {user.email}
-                              </p>
-                              <p className="text-sm text-gray-600 mb-1">
-                                No HP: {user.phone}
-                              </p>
-                              <p className="text-sm text-gray-600 mb-2">
-                                Poin: {user.points}
-                              </p>
-                              <div className="flex gap-2">
-                                <Input
-                                  type="password"
-                                  placeholder="Password baru"
-                                  value={userPasswordData}
-                                  onChange={(e) => setUserPasswordData(e.target.value)}
-                                  className="max-w-xs"
-                                />
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleUpdateUserPassword(user.id)}
-                                  className="bg-orange-500 hover:bg-orange-600"
-                                >
-                                  Update Password
-                                </Button>
-                              </div>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDeleteUser(user.id)}
-                              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </TabsContent>
-
-              {/* Orders Tab */}
-              <TabsContent value="orders">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ShoppingCart className="w-5 h-5" />
-                    Struk & Transaksi
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4 max-h-[500px] overflow-y-auto">
-                    {orders.map((order) => (
-                      <Card key={order.id} className="bg-gray-50">
-                        <CardContent className="p-4">
-                          <div className="mb-4">
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <p className="font-semibold text-gray-800">
-                                  Pesanan #{order.id.slice(-6)}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  User: {order.user.username}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  {new Date(order.createdAt).toLocaleString('id-ID')}
-                                </p>
-                              </div>
-                              {getStatusBadge(order.status)}
-                            </div>
-
-                            <div className="mb-2">
-                              <p className="text-sm font-semibold text-gray-700 mb-1">
-                                Detail User:
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                No HP: {order.user.phone}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Alamat: {order.user.address || '-'}
-                              </p>
-                            </div>
-
-                            <div className="mb-4">
-                              <p className="text-sm font-semibold text-gray-700 mb-1">
-                                Pesanan:
-                              </p>
-                              {order.items.map((item, index) => (
-                                <div
-                                  key={index}
-                                  className="flex justify-between text-sm text-gray-600 py-1"
-                                >
-                                  <span>{item.product.name} x{item.quantity}</span>
-                                  <span>Rp {item.subtotal.toLocaleString('id-ID')}</span>
-                                </div>
-                              ))}
-                            </div>
-
-                            <div className="border-t pt-3">
-                              <p className="font-bold text-gray-800 mb-3">
-                                Total: Rp {order.totalAmount.toLocaleString('id-ID')}
-                              </p>
-
-                              <div className="flex flex-wrap gap-2">
-                                <select
-                                  value={order.status}
-                                  onChange={(e) =>
-                                    handleUpdateOrderStatus(order.id, e.target.value)
-                                  }
-                                  className="px-3 py-2 border rounded-md text-sm"
-                                >
-                                  <option value="MENUNGGU_PERSETUJUAN">
-                                    Menunggu Persetujuan
-                                  </option>
-                                  <option value="DISETUJUI">Disetujui</option>
-                                  <option value="SEDANG_DIPROSES">
-                                    Sedang Diproses
-                                  </option>
-                                  <option value="SELESAI">Selesai</option>
-                                  <option value="CANCEL">Cancel</option>
-                                </select>
-
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handlePrintReceipt(order)}
-                                >
-                                  <Printer className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleDownloadReceipt(order)}
-                                >
-                                  <Download className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </TabsContent>
-
               {/* Store Profile Tab */}
-              <TabsContent value="profile">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Store className="w-5 h-5" />
-                    Profile Toko
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSaveStoreProfile} className="space-y-4 max-w-2xl">
+              <TabsContent value="store">
+                <div className="p-6">
+                  <form onSubmit={handleSaveStoreProfile} className="space-y-4">
                     <div>
                       <Label>Nama Toko</Label>
                       <Input
+                        type="text"
                         value={storeProfile.name}
-                        onChange={(e) =>
-                          setStoreProfile({ ...storeProfile, name: e.target.value })
-                        }
+                        onChange={(e) => setStoreProfile({ ...storeProfile, name: e.target.value })}
+                        placeholder="Masukkan nama toko"
+                        required
                       />
                     </div>
                     <div>
                       <Label>Slogan</Label>
                       <Input
+                        type="text"
                         value={storeProfile.slogan}
-                        onChange={(e) =>
-                          setStoreProfile({ ...storeProfile, slogan: e.target.value })
-                        }
+                        onChange={(e) => setStoreProfile({ ...storeProfile, slogan: e.target.value })}
+                        placeholder="Masukkan slogan"
+                        required
                       />
                     </div>
                     <div>
-                      <Label>Alamat Toko</Label>
+                      <Label>Alamat</Label>
                       <Textarea
                         value={storeProfile.address}
-                        onChange={(e) =>
-                          setStoreProfile({ ...storeProfile, address: e.target.value })
-                        }
+                        onChange={(e) => setStoreProfile({ ...storeProfile, address: e.target.value })}
+                        placeholder="Masukkan alamat toko"
                         rows={3}
+                        required
                       />
                     </div>
                     <div>
-                      <Label>No HP Toko</Label>
+                      <Label>No HP</Label>
                       <Input
+                        type="tel"
                         value={storeProfile.phone}
-                        onChange={(e) =>
-                          setStoreProfile({ ...storeProfile, phone: e.target.value })
-                        }
+                        onChange={(e) => setStoreProfile({ ...storeProfile, phone: e.target.value })}
+                        placeholder="Masukkan no HP toko"
+                        required
                       />
                     </div>
                     <div>
-                      <Label>Instagram (Opsional)</Label>
+                      <Label>Instagram</Label>
                       <Input
+                        type="text"
                         value={storeProfile.instagram}
-                        onChange={(e) =>
-                          setStoreProfile({ ...storeProfile, instagram: e.target.value })
-                        }
+                        onChange={(e) => setStoreProfile({ ...storeProfile, instagram: e.target.value })}
+                        placeholder="Username Instagram"
                       />
                     </div>
                     <div>
-                      <Label>Facebook (Opsional)</Label>
+                      <Label>Facebook</Label>
                       <Input
+                        type="text"
                         value={storeProfile.facebook}
-                        onChange={(e) =>
-                          setStoreProfile({ ...storeProfile, facebook: e.target.value })
-                        }
+                        onChange={(e) => setStoreProfile({ ...storeProfile, facebook: e.target.value })}
+                        placeholder="URL Facebook"
                       />
                     </div>
                     <Button
@@ -1032,10 +1003,10 @@ Terima Kasih Atas Pesanan Anda!
                       disabled={isLoading}
                       className="bg-orange-500 hover:bg-orange-600"
                     >
-                      {isLoading ? 'Memproses...' : 'Simpan Perubahan'}
+                      {isLoading ? 'Menyimpan...' : 'Simpan Perubahan'}
                     </Button>
                   </form>
-                </CardContent>
+                </div>
               </TabsContent>
             </Tabs>
           </Card>

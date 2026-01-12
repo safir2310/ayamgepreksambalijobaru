@@ -48,6 +48,8 @@ export default function LoginPage() {
           id: data.user.id,
           username: data.user.username,
           email: data.user.email,
+          phone: data.user.phone,
+          address: data.user.address,
           role: data.user.role as 'USER' | 'ADMIN',
           points: data.user.points,
         })

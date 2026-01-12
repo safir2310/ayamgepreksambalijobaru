@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // For admin registration, verify the code
+    // For admin registration, verify code
     if (role === 'ADMIN') {
       if (!birthDate || !verificationCode) {
         return NextResponse.json(

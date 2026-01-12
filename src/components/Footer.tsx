@@ -49,7 +49,7 @@ export default function Footer() {
             <div className="flex items-start justify-center md:justify-start gap-2 text-sm">
               <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span className="text-orange-100 text-left">
-                Jl. Medan - Banda Aceh, Simpang Camat, Gampong Tijue, Kec. Pidie, Kab. Pidie, 24151
+                {storeAddress}
               </span>
             </div>
           </div>
@@ -85,7 +85,7 @@ export default function Footer() {
           transition={{ delay: 0.3 }}
           className="mt-8 pt-4 border-t border-orange-400 text-center text-sm text-orange-100"
         >
-          <p>&copy; {new Date().getFullYear()} AYAM GEPREK SAMBAL IJO. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} AYAM GEPREK SAMBAL IJO. All rights reserved.</p>
         </motion.div>
       </div>
     </motion.footer>

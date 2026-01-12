@@ -5,7 +5,6 @@ import { Plus, Flame, Sparkles } from 'lucide-react'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import Image from 'next/image'
 
 interface ProductCardProps {
   id: string
@@ -61,12 +60,9 @@ export default function ProductCard({
         {/* Product Image */}
         <div className="relative w-full h-48 bg-gray-100">
           {image ? (
-            <Image
-              src={image}
-              alt={name}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            <div
+              className="w-full h-full bg-cover bg-center"
+              style={{ backgroundImage: `url(${image})` }}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-orange-100">

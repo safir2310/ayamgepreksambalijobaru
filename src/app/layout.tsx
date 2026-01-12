@@ -25,6 +25,7 @@ export const metadata: Metadata = {
   },
 };
 
+// AYAM GEPREK SAMBAL IJO - Root Layout
 export default function RootLayout({
   children,
 }: Readonly<{
